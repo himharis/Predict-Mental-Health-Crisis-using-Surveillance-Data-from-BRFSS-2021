@@ -9,3 +9,11 @@
 
 #### all these analysis have been done usng R programming language.
 
+### Visualizations
+
+#### Below is the comparison of the number of classes before and after applying SMOTE into the dataset
+<img width="816" alt="image" src="https://user-images.githubusercontent.com/63350306/219086167-f032e8cf-ece9-4d06-85ba-4c57f49d96bc.png">
+
+#### Below is the ROC curve, and it is reported that the AUROC and performance measures show  0.87 AUC from the decision tree (C50) model.
+<img width="770" alt="image" src="https://user-images.githubusercontent.com/63350306/219086485-7cd0a20d-17ee-42f0-b733-5b8872dce5e0.png">
+
