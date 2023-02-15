@@ -1,0 +1,450 @@
+---
+title: "Predict Mental Health Crisis using Surveillance Data from BRFSS 2021"
+subtitle: "<h2><u>Data Science and Predictive Analytics (HS650), Fall 2022</u></h2>"
+author: "<h3>Abdul Haris Ibrahim</h3>"
+date: "`r format(Sys.time(), '%B %Y')`"
+tags: [DSPA, SOCR, MIDAS, Big Data, Predictive Analytics] 
+output: rmdformats::readthedown 
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{=html}
+<style type="text/css">
+.main-container {
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+```
+-   Term Paper
+-   Fall 2022, DSPA (HS650)
+-   Name: Abdul Haris Ibrahim
+-   SID: \#### - 6969
+-   UMich E-mail:
+    [himharis\@umich.edu](mailto:himharis@umich.edu){.email}
+-   I certify that the following paper represents my own independent
+    work and conforms with the guidelines of academic honesty described
+    in the UMich student handbook.
+
+```{r name0, message=FALSE, warning=FALSE, include=FALSE}
+
+library(plotly)
+library(ggplot2)
+library(haven)
+library(gridExtra)
+library(Hmisc)
+library(reshape2)
+library(DMwR)
+library(caret)
+library(pROC)
+# library(RWeka)
+library(corrplot)
+library(mice)
+library(VIM)
+library(lattice)
+# library(plotROC)
+library(pROC)
+library(neuralnet)
+library(DT)
+
+
+```
+
+# Abstract
+
+According to National Institute of Mental Health, mental health involves
+emotional, psychological, and social well-being that affects people
+behaviors in their daily life. Nowadays, mental health disorders are
+common in the United States affecting more than ten millions people each
+year. Studies said that only half of people with mental illness among
+the US population receive treatment [1]. The goal for this project is to
+develop a model to predict mental crisis (depression) among the US
+population using The Behavioral Risk Factor Surveillance System (BRFSS).
+By indicating the the populations risks of mental illness, preventive
+health measures could be taken into account to help individuals
+regardless their social and economic background. <br />
+
+A publicly available dataset collected through collaborative project
+between all the states in the United States and participating US
+territories and the Centers for Disease Control and Prevention (CDC).
+The dataset was pre-processed to remove or impute missing data using
+Synthetic Minority Over-sampling Technique (SMOTE). <br />
+
+Based on this dataset, we built a general classification model (with
+10-fold cv) to predict mental health crisis in BRFSS respondents. For the model performance was assessed based on area under the receiver operating curve AUROC).<br />
+
+This work shows that classification algorithm performed achieved a very good score to predict mental health crisis in the BRFSS 2021 dataset.The
+justification based on the area under the receiver operating curve AUROC more than 80%. <br />
+
+# Introduction
+
+Mental health and wellness have been widely stressed in the past decades
+and have received much attention in many studies [2-5]. Study has
+revealed that heart disease and depression are the top two contributors
+to the global burden of disease by 2020 [6]. <br />
+
+Currently, there are no blood tests or tissue samples that can
+definitively diagnose mental illnesses. Diagnoses are based on clinical
+observations of behavior in the person and reports from those close to
+the person. Symptoms vary from one person to another, and each person
+responds differently, which complicates getting an accurate diagnosis.
+The most common mental illness diagnoses include depressive disorder,
+bipolar disorder, schizophrenia and anxiety disorders, but there are
+many others [7].<br />
+
+To understand those complications, we tried to use uniform data from the
+BRFSS that hold valuable information about health risk behaviors,
+chronic diseases, access to health care, and the use of preventive
+health care. Hopefully, we can match this information with machine
+learning techniques that may help us predicting wheteher individual
+would develop mental health crisis or not.
+
+## Hypothesis
+
+We hypothesize that surveillance data can be used as predictors for
+Mental Health Crisis.
+
+# Methods
+
+## Dataset
+
+The analysis is based on a public dataset of CDC, collected bya random
+annual phone-based survey which tracks health risk behaviors, chronic
+diseases, access to healthcare, and the use of preventive health
+services in the United States [7]. <br />
+
+Mental Health Crisis is characterized by individuals who had current
+depression/anxiety, a lifetime diagnosis of depression, and/or a
+lifetime diagnosis of anxiety and the class atribute ('Mental crisis")
+was compiled based on the answeres from the questionnaires.<br />
+
+## Analysis
+
+The goal of this analysis was to build and assess the performance of
+machine learning (ML) models to predict labels indicating the
+development of Mental Health Crisis in patients based on surveilance
+data. <br /> 
+To achieve this goal the following steps were undertaken to analyze the
+data:
+
+### Data Pre-processing: Assessing and Handeling Missing Data
+
+To prepare the data for analysis, we first assessed and removed
+incomplete attributes and transforming attributes for downstream
+analysis. SMOTE was used to deal with an imbalanced class design. SMOTE
+generates random set of minority class observations, using bootstraping
+and the datum point's K-nearest neighbors. This technique will allow us
+to avois bias towards the majority class. However, before did the SMOTE
+method, we imputted the NA values with the means to fill missing values.
+<br />
+
+### Bulding the Models
+
+In this project, we chose to develop classification and neural network
+algorithm:
+
+-   Model: The chosen algorithm in this part is C.50 that was built
+    using multiple processes.
+<br />
+
+Each of the models was built following the steps outlined below:
+
+#### Step 1: Split the data
+
+Single variable was found which best splits the data into two groups.
+<br />
+
+#### Step 2: Model Training with C50
+
+We separated the data and repeated the processes until the subgroups
+reached a maximum size of 5 or no further improvements, this method is
+called 'gain ratio'. <br /> Then, we pruned the data using bottom-up
+strategy called 'error-based' pruning. <br />
+
+#### Step 3: Model Assessment
+
+Each model performance was assessed based on area under the
+receiver operating curve (AUROC) and predictive features included in the
+highest performing model were identified. <br />
+
+```{r name1, echo=FALSE, message=FALSE, warning=FALSE}
+mydata <- read_xpt('~/Dropbox (University of Michigan)/UMICH/courses/fall 2022/HS 650/final_project/LLCP2021.XPT')
+```
+
+```{r name2, echo=FALSE, message=FALSE, warning=FALSE}
+#rename dataframe to prevent overwriting the original file, and identify the column names
+mydataclean <- mydata
+names(mydataclean)  <- (contents(mydata))$contents$Labels
+```
+
+```{r name3, echo=FALSE, message=FALSE, warning=FALSE}
+#remove the 'Record Identification' records from the dB (unnecessary for downstream analysis)
+mydatacleanremove <- mydataclean[,-c(1:26)]
+```
+
+#### The number of missing values in the dataset for each column:
+
+```{r name4, echo=FALSE, message=FALSE, warning=FALSE}
+#count NAs in Data, replace 88, 77, 99, 7,9in the data with NAs (see CodeBook Link in final report)
+    
+na_count <-sapply(mydatacleanremove, function(y) sum(length(which(is.na(y)))))
+na_count <- data.frame(na_count)
+
+
+mydatacleanremovenum <- as.data.frame(mydatacleanremove)
+mydatacleanremovenum[] <- lapply(mydatacleanremove[], as.numeric)
+mydatacleanremovenum[mydatacleanremovenum == 88] <- NA
+mydatacleanremovenum[mydatacleanremovenum == 77] <- NA
+mydatacleanremovenum[mydatacleanremovenum == 99] <- NA
+mydatacleanremovenum[mydatacleanremovenum == 7] <- NA
+mydatacleanremovenum[mydatacleanremovenum == 9] <- NA
+
+datatable(na_count)
+```
+
+<br /> Since we had a plenty of missing values, removing the NA values
+might be risky to cause bias for our downstream analysis. So, we decided
+to replace all NA values in the variables with the means to avoid bias
+happened in the dataset that we would use for training the models. Below
+are the columns that have been replaced with NA values with means.
+<br />
+
+```{r name5, echo=FALSE, message=FALSE, warning=FALSE}
+#replace all NA values with means
+    
+for(i in 1:ncol(mydatacleanremovenum)){
+      mydatacleanremovenum[is.na(mydatacleanremovenum[,i]), i]=mean(mydatacleanremovenum[,i], na.rm=TRUE)
+    }
+    
+sum(is.na(mydatacleanremovenum))
+#     
+    
+for(i in 1:ncol(mydatacleanremovenum)){
+      if(sum(is.na(mydatacleanremovenum[,i]))){print(sum(is.na(mydatacleanremovenum[,i])))
+        print(names(mydatacleanremovenum[i]))}
+    }
+```
+
+```{r name6, echo=FALSE, message=FALSE, warning=FALSE}
+#remove attributes that have no clinical relevance, such as calculated values
+    
+columnsnotneeded=c(1,2,3,4,5,11,12,13,15,34,39,40,41,42,43,44,45,46,47,48,55:57,59,64,67,69,72,76,77,82,85,91:95,97,103,107,134:139,155,156,157,158,161:164,165,167,177:269,275,276)
+mydatacleanremovenum=mydatacleanremovenum[,-columnsnotneeded]
+# sum(is.na(mydatacleanremovenum))
+
+```
+
+#### How many Nos are in the mental crises attribute? Yeses?
+
+```{r name7, echo=FALSE, message=FALSE, warning=FALSE}
+#Attribute exploration
+    
+#How many Nos are in the mental crises attribute? Yeses?
+nos=(mydatacleanremovenum[20]==2)
+# sum(nos)
+      
+yes=(mydatacleanremovenum[20]==1)
+# sum(yes)
+```
+
+```{r name8, echo=FALSE, message=FALSE, warning=FALSE}
+#Keep everything that isn't NA in targeted columns
+mentalcrisesrough <- mydatacleanremovenum
+mentalcrisesdf <- mentalcrisesrough[!is.na(mentalcrisesrough[20]),]
+```
+
+```{r name9, echo=FALSE, message=FALSE, warning=FALSE}
+#explore the mental health dataset, and move the class attribute to the last column (necessary for downstream analyses)
+# dim(mentalcrisesdf)
+# sum(is.na(mentalcrisesdf))
+depressive=mentalcrisesdf[20]
+colnames(depressive)="depressive"
+#reorder the columns
+mentalcrisesdf=data.frame(mentalcrisesdf, depressive)
+mentalcrisesdf=mentalcrisesdf[,-c(20)]
+```
+
+```{r name10, echo=FALSE, message=FALSE, warning=FALSE}
+#Explore how many Nos and Yeses and NAs are in the dataset (remember - NAs were replaced by the mean)
+datatable(data.frame(prop.table(table(mentalcrisesdf$depressive))))
+```
+
+#### After remove means from the data:
+
+After cleaning the NA values in the dataset, 80% of the reposndents
+reported never have need diagnosed with depression or anxiety, while 19%
+of them have been previously diagnosed with depression and anxiety.
+<br />
+
+```{r name11, echo=FALSE, message=FALSE, warning=FALSE}
+#Remove all NAs
+      
+mentalcrisesdf=mentalcrisesdf[!(mentalcrisesdf$depressive=="1.80421206118631"),]
+datatable(data.frame(prop.table(table(mentalcrisesdf$depressive))))
+```
+
+###### Sub-sample the dataframe (this part can be skipped, but was done due to computation limitations)
+
+After limiting the dataset, the ration of the respondents remained the
+same as pictured in the table below. <br />
+
+```{r name12, echo=FALSE, message=FALSE, warning=FALSE}
+#Sub-sample the dataframe (this part can be skipped, but was done due to computation limitations)
+set.seed(123)
+mentalcrisesdfsmall = sample(1:nrow(mentalcrisesdf), size=0.2*nrow(mentalcrisesdf))
+mentalsmall = mentalcrisesdf[mentalcrisesdfsmall,]
+# dim(mentalsmall)
+datatable(data.frame(prop.table(table(mentalsmall$depressive))))
+#Note the Yes/No ratio is approximately the same in the full vs small dataset, suggesting the smaller dataset
+#is representative of the whole.
+```
+
+```{r name13, echo=FALSE, message=FALSE, warning=FALSE}
+#SMOTE
+#Synthetic Minority Over-sampling Technique allows us to balance the class design, eliminating any bias that might hinder
+#our downstream analyses.
+
+mentalsmall$depressive = as.factor(mentalsmall$depressive)
+mentalsmall_smote <- SMOTE(depressive~., data=mentalsmall, k=5, perc.over=110)
+table(mentalsmall_smote$depressive)
+levels(mentalsmall_smote$depressive)=c("Yes", "No")
+
+```
+
+#### Below is the comparison of the number of classes before and after applying SMOTE into the dataset
+
+```{r name14, echo=FALSE, message=FALSE, warning=FALSE}
+#FIGURE
+#compare the number of classes before and after SMOTE
+
+levels(mentalsmall_smote$depressive)=c("Yes", "No")
+smote_graph <- ggplot(mentalsmall_smote, aes(depressive, fill = depressive))+geom_bar()+theme_classic(base_size = 16)+scale_fill_manual(values=c("midnightblue","firebrick4"))+guides(fill=F)+
+  ylab("Number of samples")+xlab("")+ggtitle("After_SMOTE")
+
+levels(mentalsmall$depressive)=c("Yes", "No")
+graph <- ggplot(mentalsmall, aes(depressive,fill=depressive))+geom_bar()+theme_classic(base_size=16)+
+  scale_fill_manual(values=c("midnightblue", "firebrick4"))+guides(fill=F)+
+  ylab("Number of samples")+xlab("")+ggtitle("Before_SMOTE")
+
+final=grid.arrange(graph, smote_graph, nrow=1)
+final
+
+```
+
+#### Only keep attributes with 10%+ correlation with the class attribute (calculated through Pearson's correlation) using the table below to indicate:
+
+```{r name15, echo=FALSE, message=FALSE, warning=FALSE}
+#Correlation
+#To further clean the dataset, only keep attributes with 10%+ correlation with the class attribute (calculated through
+#Pearson's correlation)
+
+#pearson's correlation to determine correlation and save the values as a CSV
+mentalsmall_smote$depressive=as.numeric(mentalsmall_smote$depressive)
+correlation <- cor(mentalsmall_smote, method="pearson")
+
+correlationdf <- data.frame(correlation)
+
+
+#include only values with correlation =>0.1
+mentalsmall_smote_cor <- mentalsmall_smote[, c(7,10,11,13,15,16,29,30,31,32,38,39,40,42,47,48,49,50,51,52,58,59,61,63,64,66,69,70,71,76,78,79,80,82,83,84,85,87,88,90,91,92,94,95,96,97,98,99,101,102,103,104,106,107,108,109,110,111,118,119,120,121,126)]
+
+datatable(mentalsmall_smote_cor)
+```
+
+#### Classification Algorithm
+
+##### 10 fold cross validation, C5.0 tree
+
+<br /> We use the decision tree model to predict labels for respondents
+from the dataset. The model was able to achieve an accuracy of
+78%.<br />
+
+```{r name16, echo=FALSE, message=FALSE, warning=FALSE}
+#---
+#Classification Algorithm
+#---
+#10 fold cross validation, C5.0 tree
+        
+tc <- trainControl("cv", 10, classProbs = TRUE, savePredictions = T)
+mentalsmall_smote_cor$depressive <- as.factor(mentalsmall_smote_cor$depressive)
+levels(mentalsmall_smote_cor$depressive) <- c("Yes", "No")
+Clean_c50_mental_tightcor <- train(depressive~., data=mentalsmall_smote_cor, method="C5.0", trControl=tc)
+Clean_c50_mental_tightcor$results
+confusionMatrix(Clean_c50_mental_tightcor)
+
+Clean_c50_mental_tightcor$finalModel
+
+
+```
+
+<br /> We plot below the ROC curve, and report the AUROC and performance
+measures. <br /> 
+The ROC curve shows the 0.87 AUC from the decision tree
+(C50) model. <br />
+
+```{r name17, echo=FALSE, message=FALSE, warning=FALSE}
+#---
+#Assessing Algorithm
+#---
+    #calculating the ROC area
+pred=predict(Clean_c50_mental_tightcor, newdata=mentalsmall_smote_cor, type="prob")
+
+rocgraphno=roc(predictor=pred$No, response=mentalsmall_smote_cor$depressive)
+rocgraphno
+rocgraphyes=roc(predictor=pred$Yes, response=mentalsmall_smote_cor$depressive)
+rocgraphyes$specificities=1-rocgraphyes$specificities
+rocgraphno$specificities=1-rocgraphno$specificities
+g=ggroc(list(yes=rocgraphyes, no=rocgraphno))+theme_classic(base_size = 16)+scale_colour_manual(values=c("black", "black"))+guides(colour=FALSE)+
+  xlab("Specificity")+ylab("True Positive Rate (Sensitivity)")
+g
+
+```
+
+
+# Conclusion
+
+Overall, the C.50 model performed very well, with an accuracy of 78%. The model predicted 33% of mental health crisis, and only misclassified 17% of mental crises as non-crises. This low FN rate is essential in a working model as the 'cost' of mis-classifying a mental crises is much higher than the 'cost' of mis-classifying a non-mental crises. Also, with AUC more than 80%, it answers our hypothesis that the surveillance data of BRFSS 2021 can be used to predict Mental Health Crisis. <br />
+
+
+# References
+
+[1] American Psychological Association. (n.d.). How to help in an
+emotional crisis. American Psychological Association. Retrieved December
+14, 2022, from
+<https://www.apa.org/topics/mental-health/help-emotional-crisis>. <br />
+<br /> 
+[2] Dowdy E, Furlong M, Eklund K, et al.. Screening for mental
+health and wellness. In: Handbook of Youth Prevention Science. Edited by
+Doll B, Pfohl W, Yoon J. New York: Routledge, 2010, pp. 70--95 [Google
+Scholar].
+<https://www.google.com/books/edition/Handbook_of_Prevention_Science/5bmNAgAAQBAJ?hl=en&gbpv=1&pg=PP1&printsec=frontcover>.
+<br /> <br /> 
+[3] Ginns EI, Jean PS, Philibert RA, et al.. A genome-wide
+search for chromosomal loci linked to mental health wellness in
+relatives at high risk for bipolar affective disorder among the Old
+Order Amish. Proc Natl Acad Sci U S A. 1998;95:15531--15536.
+<https://pubmed.ncbi.nlm.nih.gov/9861003>. <br /> <br /> 
+[4] CPuig A,
+Baggs A, Mixon K, et al.. Relationship between job burnout and personal
+wellness in mental health professionals. J Employment Couns.
+2012;49:98--109.
+<https://onlinelibrary.wiley.com/doi/full/10.1002/j.2161-1920.2012.00010.x?casa_token=9obD64qKvQwAAAAA%3A8fj9crdcXQTksUvdHJWyK29yxiuL_M5GT7QzvbVAQottWqi7wIIh4InjBa6g0of6gpPZ1RQKe_w5WNQ>.
+<br /> <br /> 
+[5] Lopez AD, Murray CC. The global burden of disease,
+1990--2020. Nat Med. 1998;4:1241--1243.
+<https://pubmed.ncbi.nlm.nih.gov/9809543>. <br /> <br /> 
+[6] IUS
+Department of Health and Human Services. Review of the Center for Mental
+Health Services' Mental Health Clinical Training Program and Payback
+Requirements (CIN: A-15-97-80001). 1999. Available at
+<https://oig.hhs.gov/oas/reports/phs/c9780001.pdf> <br /> <br /> 
+[7]
+National Alliance Mental Illness. Navigating Mental Health Crisis. 2018.
+Available at
+<https://www.nami.org/Support-Education/Publications-Reports/Guides/Navigating-a-Mental-Health-Crisis/Navigating-A-Mental-Health-Crisis>
+<br /> <br />
+
+\`\`\`
